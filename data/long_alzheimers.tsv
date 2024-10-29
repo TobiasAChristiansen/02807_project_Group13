@@ -1,4 +1,3 @@
-#node1	node2	node1_string_id	node2_string_id	neighborhood_on_chromosome	gene_fusion	phylogenetic_cooccurrence	homology	coexpression	experimentally_determined_interaction	database_annotated	automated_textmining	combined_score
 A2M	CTSD	9606.ENSP00000323929	9606.ENSP00000236671	0	0	0	0	0.070	0	0	0.397	0.415
 A2M	APOA1	9606.ENSP00000323929	9606.ENSP00000236850	0	0	0	0	0.111	0	0.750	0.994	0.998
 A2M	LRP1	9606.ENSP00000323929	9606.ENSP00000243077	0	0	0	0	0.132	0.504	0	0.997	0.998
