@@ -1,6 +1,6 @@
 import os
 cwd = os.getcwd() + "\\"
-datadir = cwd + "data\\"
+datadir = cwd + "raw_data\\"
 
 #Dataset from string
 ProteinInfo_path = "https://stringdb-downloads.org/download/protein.info.v12.0/9606.protein.info.v12.0.txt.gz"
