@@ -1,5 +1,6 @@
 import functions as f
 import constants as c
+import pandas as pd
 
 
 
@@ -22,10 +23,35 @@ class interaction_network:
 
     def __repr__(self):
         return "\n".join(f"{key} {value}" for key, value in self.vertices.items())
+    
+
+    def create_encoding_dict(self, file_url: str = "https://stringdb-downloads.org/download/protein.info.v12.0/9606.protein.info.v12.0.txt.gz", compression : str = "gzip", sep : str = "\t"):
+        
+        #Loading the relevant data
+        self.encoding_dict = pd.read_csv(file_url, compression=compression, sep=sep)
+
+        #Isolating the string id
+        self.encoding_dict = self.encoding_dict[["#string_protein_id"]]
+
+        #Converting to a dictionary
+        self.encoding_dict = self.encoding_dict.to_dict()
+
+        #Swapping keys and values
+        self.encoding_dict = f.swapkeyval(self.encoding_dict)
 
 
-    def load_data(self, data_path : str = c.datadir, filename: str = "short_alzheimers.tsv") -> None:
-        infile = open(data_path + filename)
+    def load_data(self, df : pd.DataFrame, file_url: str = "https://stringdb-downloads.org/download/protein.info.v12.0/9606.protein.info.v12.0.txt.gz", compression : str = "gzip", sep : str = "\t", req_experimental : bool = True):
+        
+        #Loading the data
+        self.data = pd.read_csv(file_url, compression=compression, sep=sep)
+
+        #If we only want interactions with experimental evidence:
+        if req_experimental:
+            self.data = self.data[self.data["experimental"] > 0]
+        
+        #Encoding the data frame:
+        self.data = self.data.map(lambda x: self.encoding_dict[x] if x in self.encoding_dict else x)
+
         for line in infile:
             try:
                 linedata = line.split()[:2]
