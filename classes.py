@@ -81,7 +81,7 @@ class interaction_network:
 
         #Encoding the data frame:
         print("Cropping data")
-        self.data = self.data.map(lambda x: self.encoding_dict[x] if x in self.encoding_dict else x).reset_index()
+        self.data = self.data.apply(lambda series: series.map( lambda x: self.encoding_dict[x] if x in self.encoding_dict else x)).reset_index()
         self.data = self.data[["protein1", "protein2"]]
 
         for i in tqdm(range(len(self.data)), desc="Parsing data"):
