@@ -82,12 +82,13 @@ class interaction_network:
         #Encoding the data frame:
         print("Cropping data")
         self.data = self.data.apply(lambda series: series.map( lambda x: self.encoding_dict[x] if x in self.encoding_dict else x)).reset_index()
-        self.data = self.data[["protein1", "protein2"]]
+        self.data = self.data[["protein1", "protein2", "combined_score"]]
+        self.data["combined_score"] = (self.data["combined_score"]-self.data["combined_score"].min())/(self.data["combined_score"].max()-self.data["combined_score"].min()) #Min-max normalizing of "combined_score"
 
         for i in tqdm(range(len(self.data)), desc="Parsing data"):
             row = self.data.iloc[i]
             try:
-                linedata = [row["protein1"], row["protein2"]]
+                linedata = [row["protein1"], row["protein2"], row["combined_score"]]
                 if linedata[0] in self.vertices:
                     self.vertices[linedata[0]].add(linedata[1])
                 else:
