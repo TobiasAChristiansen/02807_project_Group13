@@ -86,8 +86,8 @@ class interaction_network:
             try:
                 linedata = [row["protein1"], row["protein2"], row["combined_score"]]
                 # Check if the main key exists; if not, initialize it as an empty dictionary
-                if linedata[0] not in self.vertices:
-                    self.vertices[linedata[0]] = {}
+                if int(linedata[0]) not in self.vertices:
+                    self.vertices[int(linedata[0])] = {}
                 
                 # Update the sub-dictionary with the new key-value pair
                 self.vertices[int(linedata[0])][int(linedata[1])] = linedata[2]
