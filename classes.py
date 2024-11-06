@@ -56,10 +56,6 @@ class interaction_network:
         self.encoding_dict = f.swapkeyval(self.encoding_dict)
 
 
-
-
-
-
     def load_data(self,
                   file_url: str = "https://stringdb-downloads.org/download/protein.links.detailed.v12.0/9606.protein.links.detailed.v12.0.txt.gz", 
                   compression : str = "gzip", 
@@ -89,14 +85,23 @@ class interaction_network:
             row = self.data.iloc[i]
             try:
                 linedata = [row["protein1"], row["protein2"], row["combined_score"]]
+                # Check if the main key exists; if not, initialize it as an empty dictionary
+                if linedata[0] not in self.vertices:
+                    self.vertices[linedata[0]] = {}
+                
+                # Update the sub-dictionary with the new key-value pair
+                self.vertices[int(linedata[0])][int(linedata[1])] = linedata[2]
+
+                """ 
+                #old code - tobi
                 if linedata[0] in self.vertices:
-                    self.vertices[linedata[0]].add(linedata[1])
+                    self.vertices[linedata[0]].add({linedata[1]:linedata[2]})
                 else:
-                    self.vertices[linedata[0]] = {linedata[1]}
+                    self.vertices[linedata[0]] = {linedata[1]:linedata[2]}
                 if linedata[1] in self.vertices:
-                    self.vertices[linedata[1]].add(linedata[0])
+                    self.vertices[linedata[1]].add({linedata[0]:linedata[2]})
                 else:
-                    self.vertices[linedata[1]] = {linedata[0]}
+                    self.vertices[linedata[1]] = {linedata[0]:linedata[2]}"""
             except:
                 raise ValueError(f"Row {row} was discarded")
         
