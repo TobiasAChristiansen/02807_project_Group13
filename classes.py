@@ -110,7 +110,7 @@ class interaction_network:
         
         #Deleting the data. We don't need it anymore, since we have loaded
         self.data = None
-        print(f"Data loaded in var .vertices, with size: {sys.getsizeof(self.vertices/1000000)}mb")
+        print(f"Data loaded in var .vertices, with size: {sys.getsizeof(self.vertices)/1000000}mb")
 
 
     def construct_graph(self,
@@ -121,6 +121,14 @@ class interaction_network:
         Example: interaction_data[0][9827] = 0.3; the interaction between protein 0 and 9827, has (normalized) probability = 0.3
         """
         self.graph_network = nx.Graph(name=self.graph_name) #initialize empty graph
+        
+        #Creating nodes in network
+        allproteins = set()
+        for root in interaction_data.keys():
+            allproteins.add(root)
+            for neighbor in interaction_data.keys():
+                allproteins.add(neighbor)
+        self.graph_network.add_nodes_from(allproteins)
 
         #Simple adding of edges to graph network - Asbjørn
         for root in interaction_data.keys():
