@@ -3,6 +3,7 @@ import constants as c
 import pandas as pd
 import numpy as np
 import networkx as nx 
+import os, sys
 from tqdm.notebook import tqdm
 
 
@@ -109,6 +110,7 @@ class interaction_network:
         
         #Deleting the data. We don't need it anymore, since we have loaded
         self.data = None
+        print(f"Data loaded in var .vertices, with size: {sys.getsizeof(self.vertices)}")
 
 
     def construct_graph(self,
