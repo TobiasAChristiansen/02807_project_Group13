@@ -2,6 +2,7 @@ import functions as f
 import constants as c
 import pandas as pd
 import numpy as np
+import networkx as nx 
 from tqdm.notebook import tqdm
 
 
@@ -20,7 +21,8 @@ class interaction_network:
         self.vertices = dict()
         self.data = None
         self.encoding_dict = None
-
+        self.graph_name = "PPI_GraphNetwork"
+        self.graph_network = None
 
 
     def __str__(self):
@@ -107,3 +109,21 @@ class interaction_network:
         
         #Deleting the data. We don't need it anymore, since we have loaded
         self.data = None
+
+
+    def construct_graph(self,
+                        interaction_data: dict):
+        """
+        Initializes graph network and constructs edges, based on input data.
+        Input data should be in the format: dict(dict()), where the inner and outer key is a protein id, and the inner value is the normalized combined score.
+        Example: interaction_data[0][9827] = 0.3; the interaction between protein 0 and 9827, has (normalized) probability = 0.3
+        """
+        self.graph_network = nx.Graph(name=self.graph_name) #initialize empty graph
+
+        #Simple adding of edges to graph network - Asbjørn
+        for root in interaction_data.keys():
+            for neighbor in interaction_data[root].keys():
+                if root != neighbor:
+                    self.graph_network.add_edge(root, neighbor)
+
+
