@@ -110,7 +110,7 @@ class interaction_network:
         
         #Deleting the data. We don't need it anymore, since we have loaded
         self.data = None
-        print(f"Data loaded in var .vertices, with size: {sys.getsizeof(self.vertices)}")
+        print(f"Data loaded in var .vertices, with size: {sys.getsizeof(self.vertices/1000000)}mb")
 
 
     def construct_graph(self,
