@@ -1,3 +1,5 @@
+import networkx as nx
+
 def swapkeyval(indict):
     """
     Takes in a dictionary and returns a swapped key-value dictionary
@@ -28,3 +30,16 @@ def density(cluster):
     
     density = (2 * num_edges) / (num_nodes * (num_nodes - 1))
     return density
+
+def check_connection(cluster):
+    """
+    Indicates if the given cluster (networkx class / 
+    interaction_network class) is fully connected, 
+    or if there are any other isolated vertices that aren't connected.
+    """
+    clusters = list()
+    if nx.is_connected(cluster):
+        return True, clusters
+    else:
+        clusters = list(nx.connected_components(cluster))
+        return False, clusters
