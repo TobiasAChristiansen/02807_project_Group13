@@ -44,7 +44,7 @@ class interaction_network:
                              sep : str = "\t",
                              testDataset = False):
         if testDataset:
-            file_url = "https://stringdb-downloads.org/download/protein.info.v12.0/1257118.protein.info.v12.0.txt.gz"
+            file_url = "https://stringdb-downloads.org/download/protein.info.v12.0/329726.protein.info.v12.0.txt.gz"
         
         #Message
         print("Creating encoding table")
@@ -69,7 +69,7 @@ class interaction_network:
                   req_experimental : bool = True,
                   testDataset = False):
         if testDataset:
-            file_url = "https://stringdb-downloads.org/download/protein.links.detailed.v12.0/1257118.protein.links.detailed.v12.0.txt.gz"
+            file_url = "https://stringdb-downloads.org/download/protein.links.detailed.v12.0/329726.protein.links.detailed.v12.0.txt.gz"
 
         #Checking if an encoding dict have been created:
         if not self.encoding_dict:
