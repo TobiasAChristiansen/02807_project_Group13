@@ -43,3 +43,43 @@ def check_connection(cluster):
     else:
         clusters = list(nx.connected_components(cluster))
         return False, clusters
+    
+
+def shortest_path(vertex, all_vertices):
+    # Setting up a dictionary of shortest paths and the start vertex is put in a list
+    shortest_paths = dict()
+    to_process = [vertex]
+
+    # While the "to_process" list is not empty, we do branch and bound
+    while to_process:
+        current_branch = to_process.pop()
+
+        # We look through all neighbors. If it goes to a vertex already in the path, it's unoptimal and is discarded
+        for neighbor in all_vertices[current_branch.split("_")[-1]]:
+            if neighbor in current_branch.split("_"):
+                continue  # Skip if neighbor is already in the current branch
+
+            # If the path doesn't loop, we add the neighbor to the current branch and check if it's a new shortest path
+            new_path = current_branch + "_" + neighbor
+            to_process.append(new_path)
+            start_end = current_branch.split("_")[0] + "->" + neighbor
+            
+            if start_end in shortest_paths:
+                # If there are more paths of equal length, we're working with a list
+                if isinstance(shortest_paths[start_end], list):
+                    if len(new_path.split("_")) < len(shortest_paths[start_end][0].split("_")):
+                        shortest_paths[start_end] = new_path
+                    elif len(new_path.split("_")) == len(shortest_paths[start_end][0].split("_")):
+                        shortest_paths[start_end].append(new_path)
+                else:
+                    # If there's only one shortest path found until now
+                    if len(new_path.split("_")) < len(shortest_paths[start_end].split("_")):
+                        shortest_paths[start_end] = new_path
+                    elif len(new_path.split("_")) == len(shortest_paths[start_end].split("_")):
+                        shortest_paths[start_end] = [shortest_paths[start_end], new_path]
+            else:
+                # If no shortest path has been identified between the two points
+                shortest_paths[start_end] = new_path
+        
+    # Returning the output
+    return shortest_paths
