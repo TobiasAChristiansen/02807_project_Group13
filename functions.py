@@ -48,21 +48,21 @@ def check_connection(cluster):
 def shortest_path(vertex, all_vertices):
     # Setting up a dictionary of shortest paths and the start vertex is put in a list
     shortest_paths = dict()
-    to_process = [vertex]
+    to_process = [str(vertex)]
 
     # While the "to_process" list is not empty, we do branch and bound
     while to_process:
         current_branch = to_process.pop()
 
         # We look through all neighbors. If it goes to a vertex already in the path, it's unoptimal and is discarded
-        for neighbor in all_vertices[current_branch.split("_")[-1]]:
-            if neighbor in current_branch.split("_"):
+        for neighbor in all_vertices[int(current_branch.split("_")[-1])]:
+            if str(neighbor) in current_branch.split("_"):
                 continue  # Skip if neighbor is already in the current branch
 
             # If the path doesn't loop, we add the neighbor to the current branch and check if it's a new shortest path
-            new_path = current_branch + "_" + neighbor
+            new_path = current_branch + "_" + str(neighbor)
             to_process.append(new_path)
-            start_end = current_branch.split("_")[0] + "->" + neighbor
+            start_end = current_branch.split("_")[0] + "->" + str(neighbor)
             
             if start_end in shortest_paths:
                 # If there are more paths of equal length, we're working with a list
