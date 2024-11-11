@@ -41,7 +41,10 @@ class interaction_network:
     def create_encoding_dict(self, 
                              file_url: str = "https://stringdb-downloads.org/download/protein.info.v12.0/9606.protein.info.v12.0.txt.gz", 
                              compression : str = "gzip", 
-                             sep : str = "\t"):
+                             sep : str = "\t",
+                             testDataset = False):
+        if testDataset:
+            file_url = "https://stringdb-downloads.org/download/protein.info.v12.0/329726.protein.info.v12.0.txt.gz"
         
         #Message
         print("Creating encoding table")
@@ -63,8 +66,11 @@ class interaction_network:
                   file_url: str = "https://stringdb-downloads.org/download/protein.links.detailed.v12.0/9606.protein.links.detailed.v12.0.txt.gz", 
                   compression : str = "gzip", 
                   sep : str = " ", 
-                  req_experimental : bool = True):
-        
+                  req_experimental : bool = True,
+                  testDataset = False):
+        if testDataset:
+            file_url = "https://stringdb-downloads.org/download/protein.links.detailed.v12.0/329726.protein.links.detailed.v12.0.txt.gz"
+
         #Checking if an encoding dict have been created:
         if not self.encoding_dict:
             raise SyntaxError("self.create_encoding_dict() should be run prior to load_data")
