@@ -31,19 +31,44 @@ def density(cluster):
     density = (2 * num_edges) / (num_nodes * (num_nodes - 1))
     return density
 
-def check_connection(cluster):
+def check_connection(vertices):
     """
-    Indicates if the given cluster (networkx class / 
-    interaction_network class) is fully connected, 
-    or if there are any other isolated vertices that aren't connected.
+    Checks if the given vertices are all connected with every one of them.
+    Give two outputs:
+    - First output: returns True or False for the question "is it fully connected?"
+    - Second output: returns the groups with vertices that are connected between each other.
     """
-    clusters = list()
-    if nx.is_connected(cluster):
-        return True, clusters
-    else:
-        clusters = list(nx.connected_components(cluster))
-        return False, clusters
+    # Get a list of all vertices in the graph
+    all_vertices = list(vertices.keys())
     
+    # To keep track of visited vertices
+    visited = set()
+    
+    # List to store the connected components (groups)
+    components = []
+    
+    def bfs(start_vertex):
+        # Perform BFS starting from 'start_vertex'
+        visited.add(start_vertex)
+        queue = [start_vertex]
+        component = [start_vertex]
+        
+        while queue:
+            vertex = queue.pop(0)
+            for neighbor in vertices[vertex]:
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append(neighbor)
+                    component.append(neighbor)
+        return component
+    
+    # Iterate through all vertices and find all components
+    for vertex in all_vertices:
+        if vertex not in visited:
+            component = bfs(vertex)
+            components.append(component)
+    
+    return len(components) == 1, components    
 
 def shortest_path(vertex, all_vertices):
     # Setting up a dictionary of shortest paths and the start vertex is put in a list
