@@ -116,3 +116,49 @@ def shortest_path(vertex, all_vertices, debug_mode=False, timed = False):
                 to_process.append(new_path)
         
     return shortest_paths
+
+
+def girvan_newman_modularity(graph, clusters):
+    """
+    Calculate modularity (Q) for a given interaction network and clustering.
+    
+    Parameters:
+    - graph: a dictionary. Keys are protein IDs, and values are dictionaries of neighbors and their weights.
+    - clusters: List of dictionaries, where each dictionary represents a cluster.
+                Keys are protein IDs, and values are dictionaries of neighbors and their weights.
+    
+    Returns:
+    - modularity (Q) value
+    """
+    
+    total_edges = sum(
+        len(neighbors) for neighbors in graph.values()
+    ) / 2 
+
+    def fraction_of_edges_between(clusters):
+        f_ij = {}
+        for i, cluster_i in enumerate(clusters):
+            for j, cluster_j in enumerate(clusters):
+                if (i, j) not in f_ij:  # Avoid redundant calculations
+                    # Count edges between cluster_i and cluster_j
+                    edges_between = sum(
+                        1 for protein in cluster_i
+                        for neighbor in graph.get(protein, {})
+                        if neighbor in cluster_j
+                    )
+                    f_ij[(i, j)] = edges_between / total_edges
+        return f_ij
+
+    # Calculate f_ij and f_ii
+    f_ij = fraction_of_edges_between(clusters)
+    f_ii = {i: f_ij[(i, i)] for i in range(len(clusters))}
+
+    # Compute modularity
+    modularity = sum(
+        f_ii[i] - (sum(f_ij[(i, j)] for j in range(len(clusters))))**2
+        for i in range(len(clusters))
+    )
+
+    return modularity
+
+
