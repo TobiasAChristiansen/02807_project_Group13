@@ -121,6 +121,7 @@ def shortest_path(vertex, all_vertices, debug_mode=False, timed = False):
 def girvan_newman_modularity(graph, clusters):
     """
     Calculate modularity (Q) for a given interaction network and clustering.
+    This implementation assumes unweighted edges
     
     Parameters:
     - graph: a dictionary. Keys are protein IDs, and values are dictionaries of neighbors and their weights.
@@ -130,35 +131,35 @@ def girvan_newman_modularity(graph, clusters):
     Returns:
     - modularity (Q) value
     """
-    
-    total_edges = sum(
-        len(neighbors) for neighbors in graph.values()
-    ) / 2 
+    total_edges = sum(len(neighbors) for neighbors in graph.values()) / 2
 
-    def fraction_of_edges_between(clusters):
-        f_ij = {}
-        for i, cluster_i in enumerate(clusters):
-            for j, cluster_j in enumerate(clusters):
-                if (i, j) not in f_ij:  # Avoid redundant calculations
-                    # Count edges between cluster_i and cluster_j
-                    edges_between = sum(
-                        1 for protein in cluster_i
-                        for neighbor in graph.get(protein, {})
-                        if neighbor in cluster_j
-                    )
-                    f_ij[(i, j)] = edges_between / total_edges
-        return f_ij
+    def fraction_of_edges_between(cluster_i, cluster_j):
+        edges_between = sum(
+            1 for node in cluster_i
+            for neighbor in graph.get(node, {})
+            if neighbor in cluster_j
+        )
+        return edges_between / (2 * total_edges)
 
-    # Calculate f_ij and f_ii
-    f_ij = fraction_of_edges_between(clusters)
-    f_ii = {i: f_ij[(i, i)] for i in range(len(clusters))}
+    f_ii = []
+    a_i = []
 
-    # Compute modularity
+    cluster_nodes = [set(cluster.keys()) for cluster in clusters]
+
+    for i, nodes_i in enumerate(cluster_nodes):
+        f_ii_i = fraction_of_edges_between(nodes_i, nodes_i)
+        f_ii.append(f_ii_i)
+        
+        a_i_i = 0
+        for nodes_j in cluster_nodes:
+            f_ij = fraction_of_edges_between(nodes_i, nodes_j)
+            a_i_i += f_ij
+        a_i.append(a_i_i)
+
     modularity = sum(
-        f_ii[i] - (sum(f_ij[(i, j)] for j in range(len(clusters))))**2
-        for i in range(len(clusters))
+        f_ii[i] - a_i[i] ** 2
+        for i in range(len(f_ii))
     )
-
     return modularity
 
 
