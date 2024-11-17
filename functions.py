@@ -1,6 +1,8 @@
 import networkx as nx
 import time
 
+
+
 def swapkeyval(indict):
     """
     Takes in a dictionary and returns a swapped key-value dictionary
@@ -9,6 +11,10 @@ def swapkeyval(indict):
     for k, v in indict.items():
         outdict[str(v)] = k
     return outdict
+
+
+
+
 
 
 def density(cluster):
@@ -31,6 +37,10 @@ def density(cluster):
     
     density = (2 * num_edges) / (num_nodes * (num_nodes - 1))
     return density
+
+
+
+
 
 def check_connection(vertices):
     """
@@ -71,6 +81,17 @@ def check_connection(vertices):
     
     return len(components) == 1, components    
     
+
+
+
+
+
+
+
+
+
+
+
 
 def shortest_path(vertex, all_vertices, debug_mode=False, timed = False, method="bfs"):
     # Setting up a dictionary of shortest paths and the start vertex is put in a list
@@ -120,7 +141,6 @@ def shortest_path(vertex, all_vertices, debug_mode=False, timed = False, method=
         return shortest_paths
     
 
-
     elif method.lower() == "dijkstra":
         #Adding an initial distance of 0
         to_process = [[str(vertex), 0]]
@@ -155,6 +175,17 @@ def shortest_path(vertex, all_vertices, debug_mode=False, timed = False, method=
                     to_process.append(new_path)
             
         return shortest_paths
+
+
+
+
+
+
+
+
+
+
+
 
 
 def girvan_newman_modularity(graph, clusters):
