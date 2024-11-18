@@ -13,19 +13,26 @@ import multiprocessing
 class interaction_network:
     """**Interaction network:**\n
     This class object is used to keep track of both vertices and edges in a connected network.
-    Furthermore, it contains functions for creating clusters from raw data\n\n
+    Furthermore, it contains functions for creating clusters from raw data
+    The class can be initialized with arguments for concurrent changes to several functions\n\n
     **Class functions:**\n
     load_data(data_path, filename): Loads network data from a tsv file\n\n
     **Class attributes:**\n
-    self.vertices: a dictonary where the keys are the protein names, and the value is a list of protein names of interacting proteins"""
+    self.vertices: a dictonary where the keys are the protein names, and the value is a list of protein names of interacting proteins\n
+    self.testdataset: applies a smaller test data from string (not human proteins)\n
+    self.threshold: given threshold in percent TO REMOVE - meaning threshold=0.05 removes lowest 5% values of combined_score. Must be between 0 and 1"""
 
-    def __init__(self):
+    def __init__(self, 
+                 testdataset : bool = False,
+                 threshold : int = 0):
         self.vertices = dict()
         self.data = None
         self.encoding_dict = None
         self.graph_name = "PPI_GraphNetwork"
         self.graph_network = None
         self.shortest_paths = dict()
+        self.testdataset = testdataset
+        self.threshold = threshold
 
 
     def __str__(self):
@@ -43,9 +50,8 @@ class interaction_network:
     def create_encoding_dict(self, 
                              file_url: str = "https://stringdb-downloads.org/download/protein.info.v12.0/9606.protein.info.v12.0.txt.gz", 
                              compression : str = "gzip", 
-                             sep : str = "\t",
-                             testDataset = False):
-        if testDataset:
+                             sep : str = "\t"):
+        if self.testdataset:
             file_url = "https://stringdb-downloads.org/download/protein.info.v12.0/329726.protein.info.v12.0.txt.gz"
         
         #Message
@@ -68,9 +74,12 @@ class interaction_network:
                   file_url: str = "https://stringdb-downloads.org/download/protein.links.detailed.v12.0/9606.protein.links.detailed.v12.0.txt.gz", 
                   compression : str = "gzip", 
                   sep : str = " ", 
-                  req_experimental : bool = True,
-                  testDataset = False):
-        if testDataset:
+                  req_experimental : bool = True):
+        #input control threshold
+        if self.threshold > 100 or self.threshold < 0:
+            raise ValueError("Give threshold in percent, between 0 and 100%")
+
+        if self.testdataset:
             file_url = "https://stringdb-downloads.org/download/protein.links.detailed.v12.0/329726.protein.links.detailed.v12.0.txt.gz"
 
         #Checking if an encoding dict have been created:
@@ -90,7 +99,17 @@ class interaction_network:
         print("Cropping data")
         self.data = self.data.apply(lambda series: series.map( lambda x: self.encoding_dict[x] if x in self.encoding_dict else x)).reset_index()
         self.data = self.data[["protein1", "protein2", "combined_score"]]
-        self.data["combined_score"] = (self.data["combined_score"]-self.data["combined_score"].min())/(self.data["combined_score"].max()-self.data["combined_score"].min()) #Min-max normalizing of "combined_score"
+        threshold_value = self.data["combined_score"].quantile(self.threshold) #calculate combined_score value associated with given threshold percentage
+        self.data = self.data[self.data["combined_score"] > threshold_value] #filter threshold
+        
+        #Return info on threshold value
+        if threshold_value > 0: 
+            print(f"Given threshold: {self.threshold} filtered out combined_score values: {threshold_value} and below")
+        else:
+            print(f"Given threshold: {self.threshold} filtered out no values")
+        
+        #Min-max normalizing of "combined_score"
+        self.data["combined_score"] = (self.data["combined_score"]-self.data["combined_score"].min())/(self.data["combined_score"].max()-self.data["combined_score"].min()) 
 
         for i in tqdm(range(len(self.data)), desc="Parsing data"):
             row = self.data.iloc[i]
