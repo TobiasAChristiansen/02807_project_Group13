@@ -5,7 +5,8 @@ import numpy as np
 import networkx as nx 
 import os, sys
 from tqdm.notebook import tqdm
-
+from functools import reduce
+import multiprocessing
 
 
 
@@ -143,6 +144,12 @@ class interaction_network:
                 if root != neighbor:
                     self.graph_network.add_edge(root, neighbor)
     
+
+
+
+
+
+
     def shortest_path(self, vertex, debug_mode=False, method="bfs"):
         # Setting up a dictionary of shortest paths and the start vertex is put in a list
         shortest_paths = dict()
@@ -209,14 +216,14 @@ class interaction_network:
                     # If the path doesn't loop, we add the neighbor to the current branch and check if it's a new shortest path
                     #Adding the neigbor
                     new_path = [current_branch[0] + "_" + str(neighbor), current_branch[1]]
-                    start_end = new_path[0].split("_")[0] + "->" + str(neighbor)
+                    start_end = f.lowest_first_from_to([new_path[0].split("_")[0], neighbor])
                     new_path_split = new_path[0].split("_")
 
                     if start_end in self.shortest_paths:
                         continue
                     
                     #Updating the length of the path
-                    new_path[1] = new_path[1] + (1- self.vertices[int(new_path_split[-2])][int(new_path_split[-1])])
+                    new_path[1] = new_path[1] + (1 - self.vertices[int(new_path_split[-2])][int(new_path_split[-1])])
 
                     if start_end in self.shortest_paths:
                         if new_path[1] < self.shortest_paths[start_end][1]:
@@ -236,5 +243,16 @@ class interaction_network:
                     except:
                         print("Error", split_path)
             return list_of_edges
+
+
+    def evaluate_most_used_path(self, cluster):
+        with multiprocessing.Pool() as pool:
+            results = pool.map(self.shortest_path, cluster)
+
+        occurances = reduce(f.count_occurances, results, {})
+        print(occurances)
+
+
+
 
 
