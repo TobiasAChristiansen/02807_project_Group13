@@ -93,7 +93,7 @@ def check_connection(vertices):
 
 
 
-def shortest_path(vertex, all_vertices, debug_mode=False, timed = False, method="bfs"):
+def shortest_path(self, vertex, debug_mode=False, method="bfs"):
     # Setting up a dictionary of shortest paths and the start vertex is put in a list
     shortest_paths = dict()
     to_process = [str(vertex)]
@@ -148,7 +148,7 @@ def shortest_path(vertex, all_vertices, debug_mode=False, timed = False, method=
         # While the "to_process" list is not empty, we do branch and bound
         while to_process:
             if debug_mode:
-                print(count, len(to_process), len(shortest_paths))
+                print(count, len(to_process), len(self.shortest_paths))
             
             #Taking one of the short branches to process
             current_branch = to_process.pop(0)
@@ -161,20 +161,28 @@ def shortest_path(vertex, all_vertices, debug_mode=False, timed = False, method=
                 new_path = [current_branch[0] + "_" + str(neighbor), current_branch[1]]
                 start_end = new_path[0].split("_")[0] + "->" + str(neighbor)
                 new_path_split = new_path[0].split("_")
+
+                if start_end in self.shortest_paths:
+                    continue
                 
                 #Updating the length of the path
-                new_path[1] = new_path[1] + all_vertices[int(new_path_split[-2])][int(new_path_split[-1])]
+                new_path[1] = new_path[1] + (1- all_vertices[int(new_path_split[-2])][int(new_path_split[-1])])
                 
-                if start_end in shortest_paths:
-                    if new_path[1] < shortest_paths[start_end][1]:
-                        shortest_paths[start_end] = new_path
+                if start_end in self.shortest_paths:
+                    if new_path[1] < self.shortest_paths[start_end][1]:
+                        self.shortest_paths[start_end] = new_path
                         to_process.append(new_path)
                 else:
                     # If no shortest path has been identified between the two points
-                    shortest_paths[start_end] = new_path
+                    self.shortest_paths[start_end] = new_path
                     to_process.append(new_path)
             
-        return shortest_paths
+        #Returning a list of all edges A-B
+        list_of_edges = list()
+        for item in self.shortest_paths:
+            for i in range(1, len(split_path := self.shortest_paths[item][0].split("_"))):
+                list_of_edges.append(self.shortest_paths[item][i-1] + "-" + self.shortest_paths[item][i])
+        return list_of_edges
 
 
 
