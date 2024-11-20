@@ -20,11 +20,14 @@ class interaction_network:
     **Class attributes:**\n
     self.vertices: a dictonary where the keys are the protein names, and the value is a list of protein names of interacting proteins\n
     self.testdataset: applies a smaller test data from string (not human proteins)\n
-    self.threshold: given threshold in percent TO REMOVE - meaning threshold=0.05 removes lowest 5% values of combined_score. Must be between 0 and 1"""
+    self.threshold: given threshold in percent TO REMOVE - meaning threshold=0.05 removes lowest 5% values of combined_score. Must be between 0 and 1
+    self.NewPython3912: NewPython3912 is given as true, if user is using python version 3.9.12 or older (in that case, tqdm() parsing of data wont run and progress bar will not appear!)
+    """
 
     def __init__(self, 
                  testdataset : bool = False,
-                 threshold : int = 0):
+                 threshold : int = 0,
+                 NewPython3912 : bool = False):
         self.vertices = dict()
         self.data = None
         self.encoding_dict = None
@@ -33,6 +36,7 @@ class interaction_network:
         self.shortest_paths = dict()
         self.testdataset = testdataset
         self.threshold = threshold
+        self.NewPython3912 = NewPython3912
 
 
     def __str__(self):
@@ -79,6 +83,7 @@ class interaction_network:
         if self.threshold > 100 or self.threshold < 0:
             raise ValueError("Give threshold in percent, between 0 and 100%")
 
+        #Test dataset
         if self.testdataset:
             file_url = "https://stringdb-downloads.org/download/protein.links.detailed.v12.0/329726.protein.links.detailed.v12.0.txt.gz"
 
@@ -111,29 +116,37 @@ class interaction_network:
         #Min-max normalizing of "combined_score"
         self.data["combined_score"] = (self.data["combined_score"]-self.data["combined_score"].min())/(self.data["combined_score"].max()-self.data["combined_score"].min()) 
 
-        for i in tqdm(range(len(self.data)), desc="Parsing data"):
-            row = self.data.iloc[i]
-            try:
-                linedata = [row["protein1"], row["protein2"], row["combined_score"]]
-                # Check if the main key exists; if not, initialize it as an empty dictionary
-                if int(linedata[0]) not in self.vertices:
-                    self.vertices[int(linedata[0])] = {}
-                
-                # Update the sub-dictionary with the new key-value pair
-                self.vertices[int(linedata[0])][int(linedata[1])] = linedata[2]
+        #Flag for NewPython3912 (tqdm() wont run in newer versions)
+        if self.NewPython3912:
+            print("Parsing data without progress bar...")
+            for i in range(len(self.data)):
+                row = self.data.iloc[i]
+                try:
+                    linedata = [row["protein1"], row["protein2"], row["combined_score"]]
+                    # Check if the main key exists; if not, initialize it as an empty dictionary
+                    if int(linedata[0]) not in self.vertices:
+                        self.vertices[int(linedata[0])] = {}
+                    
+                    # Update the sub-dictionary with the new key-value pair
+                    self.vertices[int(linedata[0])][int(linedata[1])] = linedata[2]
 
-                """ 
-                #old code - tobi
-                if linedata[0] in self.vertices:
-                    self.vertices[linedata[0]].add({linedata[1]:linedata[2]})
-                else:
-                    self.vertices[linedata[0]] = {linedata[1]:linedata[2]}
-                if linedata[1] in self.vertices:
-                    self.vertices[linedata[1]].add({linedata[0]:linedata[2]})
-                else:
-                    self.vertices[linedata[1]] = {linedata[0]:linedata[2]}"""
-            except:
-                raise ValueError(f"Row {row} was discarded")
+                except:
+                    raise ValueError(f"Row {row} was discarded")
+        
+        else: #in case python version is "old" and tqdm() can run   
+            for i in tqdm(range(len(self.data)), desc="Parsing data"):
+                row = self.data.iloc[i]
+                try:
+                    linedata = [row["protein1"], row["protein2"], row["combined_score"]]
+                    # Check if the main key exists; if not, initialize it as an empty dictionary
+                    if int(linedata[0]) not in self.vertices:
+                        self.vertices[int(linedata[0])] = {}
+                    
+                    # Update the sub-dictionary with the new key-value pair
+                    self.vertices[int(linedata[0])][int(linedata[1])] = linedata[2]
+
+                except:
+                    raise ValueError(f"Row {row} was discarded")
         
         #Deleting the data. We don't need it anymore, since we have loaded
         self.data = None
@@ -163,11 +176,6 @@ class interaction_network:
                 if root != neighbor:
                     self.graph_network.add_edge(root, neighbor)
     
-
-
-
-
-
 
     def shortest_path(self, vertex, debug_mode=False, method="bfs"):
         # Setting up a dictionary of shortest paths and the start vertex is put in a list
