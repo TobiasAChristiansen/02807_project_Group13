@@ -177,7 +177,7 @@ class interaction_network:
                     self.graph_network.add_edge(root, neighbor)
     
 
-    def shortest_path(self, vertex, debug_mode=False, method="bfs"):
+    def shortest_path(self, vertex, debug_mode=False, method="Dijkstra"):
         # Setting up a dictionary of shortest paths and the start vertex is put in a list
         shortest_paths = dict()
         to_process = [str(vertex)]
@@ -243,7 +243,7 @@ class interaction_network:
                     # If the path doesn't loop, we add the neighbor to the current branch and check if it's a new shortest path
                     #Adding the neigbor
                     new_path = [current_branch[0] + "_" + str(neighbor), current_branch[1]]
-                    start_end = f.lowest_first_from_to([new_path[0].split("_")[0], neighbor])
+                    start_end = f.lowest_first_from_to(new_path[0].split("_")[0], str(neighbor))
                     new_path_split = new_path[0].split("_")
 
                     if start_end in self.shortest_paths:
@@ -262,14 +262,12 @@ class interaction_network:
                         to_process.append(new_path)
 
             #Returning a list of all edges A-B
-            list_of_edges = list()
+            edges_dict = dict()
             for item in self.shortest_paths:
                 for i in range(1, len(split_path := self.shortest_paths[item][0].split("_"))):
-                    try:
-                        list_of_edges.append(split_path[i-1] + "-" + split_path[i])
-                    except:
-                        print("Error", split_path)
-            return list_of_edges
+                    edge = f.lowest_first_from_to_edge(split_path[i-1], split_path[i])
+                    edges_dict[edge] = edges_dict.get(edge, 0) + 1
+            return edges_dict
 
 
     def evaluate_most_used_path(self, cluster):
