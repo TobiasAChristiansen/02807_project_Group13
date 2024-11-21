@@ -273,16 +273,28 @@ class interaction_network:
             return edges_dict #{key:edges_dict[key] for key in keys_to_include}
 
 
-    def evaluate_most_used_path(self, cluster):
+    def evaluate_most_used_path(self, cluster, debug_mode=False):
+        if debug_mode: print("Initializing MapReduce of shortest_path()...") #debug_mode
         with multiprocessing.Pool() as pool:
             results = pool.map(self.shortest_path, cluster)
         occurances = reduce(f.count_occurances, results, {})
+
+        #tweaking data structure with encoding dict
+        if debug_mode: print("Initializing MapReduce of shortest_path()...") #debug_mode
         occurances_small = {}
         count=0
-        for key, value in occurances.items():
-            self.encoding_edgesused[count] = key
-            occurances_small[count] = value
-            count += 1
+        if self.NewPython3912: #New python - no progress bar
+            print("Creating encoding dict without progress bar...") #debug_mode
+            for key, value in occurances.items():
+                self.encoding_edgesused[count] = key
+                occurances_small[count] = value
+                count += 1
+        else: #Old python - with progress bar
+            for key, value in tqdm(occurances.items(), desc="Parsing encoding_edgesused data"):
+                self.encoding_edgesused[count] = key
+                occurances_small[count] = value
+                count += 1
+
         return occurances_small
 
 
