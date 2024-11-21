@@ -83,14 +83,17 @@ def check_connection(vertices):
 
 
 
-def count_occurances(counts_dict, input_list):
-    for item in input_list:
-        counts_dict[item] = counts_dict.get(item, 0) + 1
+def count_occurances(counts_dict, edge_dict):
+    for key in edge_dict:
+        counts_dict[key] = counts_dict.get(key, 0) + edge_dict[key]
     return counts_dict
 
 
 def lowest_first_from_to(u, v):
     return str(min([u,v])) + "->" + str(max([u,v]))
+
+def lowest_first_from_to_edge(u, v):
+    return str(min([u,v])) + "-" + str(max([u,v]))
 
 
 
