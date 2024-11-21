@@ -114,7 +114,8 @@ class interaction_network:
             print(f"Given threshold: {self.threshold} filtered out no values")
         
         #Min-max normalizing of "combined_score"
-        self.data["combined_score"] = (self.data["combined_score"]-self.data["combined_score"].min())/(self.data["combined_score"].max()-self.data["combined_score"].min()) 
+        self.data["combined_score"] = (self.data["combined_score"]-self.data["combined_score"].min())/(self.data["combined_score"].max()-self.data["combined_score"].min())
+        self.data["combined_score"] = self.data["combined_score"].round(2) 
 
         #Flag for NewPython3912 (tqdm() wont run in newer versions)
         if self.NewPython3912:
@@ -223,7 +224,6 @@ class interaction_network:
                         to_process.append(new_path)
 
             return shortest_paths
-
 
         elif method.lower() == "dijkstra":
             #Adding an initial distance of 0
