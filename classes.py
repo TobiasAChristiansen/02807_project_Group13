@@ -31,6 +31,7 @@ class interaction_network:
         self.vertices = dict()
         self.data = None
         self.encoding_dict = None
+        self.encoding_edgesused = {}
         self.graph_name = "PPI_GraphNetwork"
         self.graph_network = None
         self.shortest_paths = dict()
@@ -276,7 +277,12 @@ class interaction_network:
         with multiprocessing.Pool() as pool:
             results = pool.map(self.shortest_path, cluster)
         occurances = reduce(f.count_occurances, results, {})
-        return occurances
+        occurances_small = {}
+        count=0
+        for key, value in occurances.items():
+            self.encoding_edgesused[count] = key
+            occurances_small[count] = value
+        return occurances_small
 
 
 
