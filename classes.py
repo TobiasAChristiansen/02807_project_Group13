@@ -267,7 +267,9 @@ class interaction_network:
                 for i in range(1, len(split_path := self.shortest_paths[item][0].split("_"))):
                     edge = f.lowest_first_from_to_edge(split_path[i-1], split_path[i])
                     edges_dict[edge] = edges_dict.get(edge, 0) + 1
-            return edges_dict
+            #num_included = 1000
+            #keys_to_include = [item[0] for item in sorted(edges_dict.items(), key = lambda x: x[1], reverse=True)[:num_included]]
+            return edges_dict #{key:edges_dict[key] for key in keys_to_include}
 
 
     def evaluate_most_used_path(self, cluster):
