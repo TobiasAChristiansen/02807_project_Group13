@@ -275,9 +275,8 @@ class interaction_network:
     def evaluate_most_used_path(self, cluster):
         with multiprocessing.Pool() as pool:
             results = pool.map(self.shortest_path, cluster)
-
         occurances = reduce(f.count_occurances, results, {})
-        print(occurances)
+        return occurances
 
 
 
