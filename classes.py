@@ -282,6 +282,7 @@ class interaction_network:
         for key, value in occurances.items():
             self.encoding_edgesused[count] = key
             occurances_small[count] = value
+            count += 1
         return occurances_small
 
 
