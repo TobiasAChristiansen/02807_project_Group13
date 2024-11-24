@@ -120,8 +120,7 @@ def shortest_path(vertex, all_vertices, debug_mode=False, timed = False):
 
 def girvan_newman_modularity(graph, clusters):
     """
-    Calculate modularity (Q) for a given interaction network and clustering.
-    This implementation assumes unweighted edges
+    Calculate modularity (Q) for a given interaction network and clusters, using Louvain Algorithm
     
     Parameters:
     - graph: a dictionary. Keys are protein IDs, and values are dictionaries of neighbors and their weights.
@@ -129,37 +128,32 @@ def girvan_newman_modularity(graph, clusters):
                 Keys are protein IDs, and values are dictionaries of neighbors and their weights.
     
     Returns:
-    - modularity (Q) value
+    - modularity (Q) value with range [-0.5, 1]
     """
-    total_edges = sum(len(neighbors) for neighbors in graph.values()) / 2
+    total_weight = sum(
+        sum(neighbors.values()) for neighbors in graph.values()
+    ) / 2  
 
-    def fraction_of_edges_between(cluster_i, cluster_j):
-        edges_between = sum(
-            1 for node in cluster_i
-            for neighbor in graph.get(node, {})
-            if neighbor in cluster_j
-        )
-        return edges_between / (2 * total_edges)
+    node_strength = {node: sum(neighbors.values()) for node, neighbors in graph.items()}
 
-    f_ii = []
-    a_i = []
+    modularity = 0.0
 
-    cluster_nodes = [set(cluster.keys()) for cluster in clusters]
+    for cluster in clusters:
+        nodes_in_cluster = set(cluster.keys())
 
-    for i, nodes_i in enumerate(cluster_nodes):
-        f_ii_i = fraction_of_edges_between(nodes_i, nodes_i)
-        f_ii.append(f_ii_i)
-        
-        a_i_i = 0
-        for nodes_j in cluster_nodes:
-            f_ij = fraction_of_edges_between(nodes_i, nodes_j)
-            a_i_i += f_ij
-        a_i.append(a_i_i)
+        in_cluster_weight = 0.0 
+        total_strength = sum(node_strength[node] for node in nodes_in_cluster)  
 
-    modularity = sum(
-        f_ii[i] - a_i[i] ** 2
-        for i in range(len(f_ii))
-    )
+        for node_i in nodes_in_cluster:
+            neighbors = graph.get(node_i, {})
+            for node_j, weight in neighbors.items():
+                if node_j in nodes_in_cluster:
+                    in_cluster_weight += weight
+
+        in_cluster_weight /= 2.0
+
+        modularity += (in_cluster_weight / total_weight) - (total_strength / (2 * total_weight)) ** 2
+
     return modularity
 
 
