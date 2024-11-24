@@ -57,7 +57,7 @@ class interaction_network:
                              compression : str = "gzip", 
                              sep : str = "\t"):
         if self.testdataset:
-            file_url = "https://stringdb-downloads.org/download/protein.info.v12.0/329726.protein.info.v12.0.txt.gz"
+            file_url = "https://stringdb-downloads.org/download/protein.info.v12.0/9606.protein.info.v12.0.txt.gz"
         
         #Message
         print("Creating encoding table")
@@ -86,7 +86,7 @@ class interaction_network:
 
         #Test dataset
         if self.testdataset:
-            file_url = "https://stringdb-downloads.org/download/protein.links.detailed.v12.0/329726.protein.links.detailed.v12.0.txt.gz"
+            file_url = "https://stringdb-downloads.org/download/stream/protein.links.detailed.v12.0/9606.protein.links.detailed.v12.0.onlyAB.txt.gz"
 
         #Checking if an encoding dict have been created:
         if not self.encoding_dict:
