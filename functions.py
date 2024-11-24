@@ -1,6 +1,8 @@
 import networkx as nx
 import time
 
+
+
 def swapkeyval(indict):
     """
     Takes in a dictionary and returns a swapped key-value dictionary
@@ -9,6 +11,10 @@ def swapkeyval(indict):
     for k, v in indict.items():
         outdict[str(v)] = k
     return outdict
+
+
+
+
 
 
 def density(cluster):
@@ -31,6 +37,10 @@ def density(cluster):
     
     density = (2 * num_edges) / (num_nodes * (num_nodes - 1))
     return density
+
+
+
+
 
 def check_connection(vertices):
     """
@@ -70,52 +80,21 @@ def check_connection(vertices):
             components.append(component)
     
     return len(components) == 1, components    
-    
 
-def shortest_path(vertex, all_vertices, debug_mode=False, timed = False):
-    # Setting up a dictionary of shortest paths and the start vertex is put in a list
-    shortest_paths = dict()
-    to_process = [str(vertex)]
-    count = 0
 
-    # While the "to_process" list is not empty, we do branch and bound
-    while to_process:
-        if debug_mode:
-            print(count, len(to_process), len(shortest_paths))
-        
-        #Taking one of the short branches to process
-        current_branch = to_process.pop(0)
 
-        # We look through all neighbors. If it goes to a vertex already in the path, it's unoptimal and is discarded
-        for neighbor in all_vertices[int(current_branch.split("_")[-1])]:
-            
-            # If the path doesn't loop, we add the neighbor to the current branch and check if it's a new shortest path
-            new_path = current_branch + "_" + str(neighbor)
-            start_end = new_path.split("_")[0] + "->" + str(neighbor)
-            
-            if start_end in shortest_paths:
-                # If there are more paths of equal length, we're working with a list
-                if isinstance(shortest_paths[start_end], list):
-                    if len(new_path.split("_")) < len(shortest_paths[start_end][0].split("_")):
-                        shortest_paths[start_end] = new_path
-                        to_process.append(new_path)
-                    elif len(new_path.split("_")) == len(shortest_paths[start_end][0].split("_")):
-                        shortest_paths[start_end].append(new_path)
-                        to_process.append(new_path)
-                else:
-                    # If there's only one shortest path found until now
-                    if len(new_path.split("_")) < len(shortest_paths[start_end].split("_")):
-                        shortest_paths[start_end] = new_path
-                        to_process.append(new_path)
-                    elif len(new_path.split("_")) == len(shortest_paths[start_end].split("_")):
-                        shortest_paths[start_end] = [shortest_paths[start_end], new_path]
-                        to_process.append(new_path)
-            else:
-                # If no shortest path has been identified between the two points
-                shortest_paths[start_end] = new_path
-                to_process.append(new_path)
-        
-    return shortest_paths
+def count_occurances(counts_dict, edge_dict):
+    for key in edge_dict:
+        counts_dict[key] = counts_dict.get(key, 0) + edge_dict[key]
+    return counts_dict
+
+
+def lowest_first_from_to(u, v):
+    return str(min([u,v])) + "->" + str(max([u,v]))
+
+def lowest_first_from_to_edge(u, v):
+    return str(min([u,v])) + "-" + str(max([u,v]))
+
 
 
 def girvan_newman_modularity(graph, clusters):
