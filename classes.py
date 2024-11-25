@@ -32,6 +32,7 @@ class interaction_network:
         self.data = None
         self.encoding_dict = None
         self.encoding_edgesused = {}
+        self.occurances_small = None
         self.graph_name = "PPI_GraphNetwork"
         self.graph_network = None
         self.shortest_paths = dict()
@@ -51,7 +52,8 @@ class interaction_network:
         return "\n".join(f"{key} {value}" for key, value in self.vertices.items())
     
 
-    def decode(self, cluster):
+    #outdated
+    """def decode(self, cluster):
         new_dict = dict()
         for key in cluster:
             proteinname = self.decoding_dict[key]
@@ -59,7 +61,7 @@ class interaction_network:
             for neighbor in cluster[key]:
                 neighbor_protein_names.append(self.decoding_dict[neighbor])
             new_dict[proteinname] = neighbor_protein_names
-        return new_dict
+        return new_dict"""
     
 
 
@@ -75,13 +77,13 @@ class interaction_network:
         print("Creating encoding table")
 
         #Loading the relevant data
-        self.decoding_dict = pd.read_csv(file_url, compression=compression, sep=sep)
+        self.encoding_dict = pd.read_csv(file_url, compression=compression, sep=sep)
 
         #Isolating the string id
-        self.decoding_dict = self.encoding_dict[["#string_protein_id"]].values
+        self.encoding_dict = self.encoding_dict[["#string_protein_id"]].values
 
         #Converting to a dictionary
-        self.decoding_dict = {str(c):e[0] for c, e in enumerate(self.encoding_dict)}
+        self.encoding_dict = {str(c):e[0] for c, e in enumerate(self.encoding_dict)}
 
         #Swapping keys and values
         self.encoding_dict = f.swapkeyval(self.encoding_dict)
@@ -324,6 +326,7 @@ class interaction_network:
                 occurances_small[count] = value
                 count += 1
 
+        self.occurances_small = occurances_small
         return occurances_small
     
 
@@ -333,12 +336,9 @@ class interaction_network:
             shortest_paths[key] = shortest_paths[key] / self.vertices[int(start_end[0])][int(start_end[1])]
         return shortest_paths
     
-
     def find_edge_to_cut(self, severance_scores):
         edge_to_cut = sorted(severance_scores.items(), key = lambda x:x[1], reverse=True)[0][0]
         return edge_to_cut
-
-
 
     def cut_edge(self, clusternumber, edge_to_cut):
         start_end = edge_to_cut.split("-")
@@ -353,7 +353,6 @@ class interaction_network:
             if path_format in self.shortest_paths[key]:
                 del self.shortest_paths[key]
     
-
     def split_cluster(self, clusterindex, list_of_keylists):
         new_clusters = list()
         for keylist in list_of_keylists:
@@ -363,7 +362,6 @@ class interaction_network:
         del self.vertices[clusterindex]
         for new_cluster in new_clusters:
             self.vertices.append(new_cluster)
-
 
     def edge_to_remove(self, cluster):
         res = self.evaluate_most_used_path()
@@ -380,7 +378,7 @@ class interaction_network:
 
             #If the conditions are met, we classify by GSEA
             if density <= 0.7:
-                decoded_cluster = self.decode(self.vertices[0])
+                decoded_cluster = self.decode_edgesused(cluster=self.vertices[0])
                 self.finished_clusters.append([f.enrichment_analysis(list(decoded_cluster.keys())), decoded_cluster])
                 del self.vertices[0]
 
@@ -401,14 +399,13 @@ class interaction_network:
                     modularity = f.girvan_newman_modularity(copy_current_cluster, self.vertices[-len(connected_keys):])
 
                     if modularity < 0:
-                        decoded_cluster = self.decode(copy_current_cluster)
+                        decoded_cluster = self.decode_edgesused(cluster=copy_current_cluster)
                         self.finished_clusters.append([f.enrichment_analysis(list(decoded_cluster.keys())), decoded_cluster])
                         self.vertices = self.vertices[:-3]
                         
 
         
         self.write_clusters()
-    
 
     def write_clusters(self):
         outfile = open("results.txt", "w")
@@ -418,4 +415,52 @@ class interaction_network:
                 outfile.write(key + ": " + ", ".join(finished_cluster[1][key]))
         outfile.close()
 
+
+    def decode_edgesused(self, id : int = 0, cluster : dict = None, full_dict : bool = False):
+        """
+        Decodes edges used integers to string interactions.
+        eg. 0 --> 0-1940 (not real interaction).
+
+        cluster = insert cluster ; returns a decoded cluster in case cluster is given        
+        full_dict = True ; Return full dictionary, not just interaction for id given
+
+        For decoding protein name, use "decode_proteinname()"
+        """
+        return_dict = {}
+        if full_dict: #return full dictionary, not just interaction for id given
+            for key, value in self.occurances_small.items():
+                return_dict[self.encoding_edgesused[key]] = value
+            return return_dict
+        
+        elif cluster != None:
+            for key, value in cluster.items():
+                return_dict[self.encoding_edgesused[key]] = value
+            return return_dict
+
+        else:
+            return self.encoding_edgesused[key]
+
+    def decode_proteinname(self, id : int = 0, cluster : dict = None, full_dict : bool = False):
+        """
+        Decodes protein used integers to string names as given in stringDB.
+        eg. 0 --> ENV09918398 (not real protein).
+
+        cluster = insert cluster ; returns a decoded cluster in case cluster is given 
+        full_dict = True ;Return full dictionary, not just protein name for id given
+
+        For decoding edges in cluster, use "decode_edgesused()"
+        """
+        return_dict = {}
+        if full_dict: #return full dictionary, not just protein name for id given
+            for key, value in self.occurances_small.items():
+                return_dict[self.encoding_dict[key]] = value
+            return return_dict
+
+        elif cluster != None:
+            for key, value in cluster.items():
+                return_dict[self.encoding_edgesused[key]] = value
+            return return_dict
+
+        else:
+            return self.encoding_dict[key]
 

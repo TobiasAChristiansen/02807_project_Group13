@@ -155,3 +155,19 @@ def enrichment_analysis(protein_list, organism = "hsapiens", sign_level = 0.05):
     
     else:
         return "No significant functions found"
+
+def decode_edgesused(id : int):
+    """
+    Decodes edges used integers to string interactions.
+    eg. 0 --> 0-1940 (not real interaction).
+
+    For decoding protein name, use "decode_proteinname()"
+    """
+
+def decode_proteinname():
+    """
+    Decodes protein used integers to string names as given in stringDB.
+    eg. 0 --> ENV09918398 (not real protein).
+
+    For decoding edges in cluster, use "decode_edgesused()"
+    """
