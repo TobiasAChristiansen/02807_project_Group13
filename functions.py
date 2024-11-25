@@ -1,5 +1,6 @@
 import networkx as nx
 import time
+from gprofiler.gprofiler import GProfiler
 
 
 
@@ -135,4 +136,22 @@ def girvan_newman_modularity(graph, clusters):
 
     return modularity
 
+def enrichment_analysis(protein_list, organism = "hsapiens", sign_level = 0.05):
+    
+    # Initialize GProfiler object
+    gp = GProfiler(return_dataframe=True)
 
+    #Generate GProfiler with the information from protein sequences and organism
+    results = gp.profile(
+        organism=organism,
+        query=protein_list,
+        sources=['GO:BP', 'GO:MF', 'GO:CC', 'KEGG', 'REAC'],  # Include GO (BP, MF, CC), KEGG, and Reactome
+        significance_threshold_method='fdr'  # FDR for multiple testing correction
+    )
+    
+    # Filter for a significant result (adjust p-value threshold as needed)
+    if results[['p_value']].iloc[0] < sign_level:
+        return results[['p-value']].iloc[0]
+    
+    else:
+        return "No significant functions found"

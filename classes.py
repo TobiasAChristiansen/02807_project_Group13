@@ -38,6 +38,7 @@ class interaction_network:
         self.testdataset = testdataset
         self.threshold = threshold
         self.NewPython3912 = NewPython3912
+        self.finished_clusters = list()
 
 
     def __str__(self):
@@ -48,6 +49,17 @@ class interaction_network:
 
     def __repr__(self):
         return "\n".join(f"{key} {value}" for key, value in self.vertices.items())
+    
+
+    def decode(self, cluster):
+        new_dict = dict()
+        for key in cluster:
+            proteinname = self.decoding_dict[key]
+            neighbor_protein_names = list()
+            for neighbor in cluster[key]:
+                neighbor_protein_names.append(self.decoding_dict[neighbor])
+            new_dict[proteinname] = neighbor_protein_names
+        return new_dict
     
 
 
@@ -63,13 +75,13 @@ class interaction_network:
         print("Creating encoding table")
 
         #Loading the relevant data
-        self.encoding_dict = pd.read_csv(file_url, compression=compression, sep=sep)
+        self.decoding_dict = pd.read_csv(file_url, compression=compression, sep=sep)
 
         #Isolating the string id
-        self.encoding_dict = self.encoding_dict[["#string_protein_id"]].values
+        self.decoding_dict = self.encoding_dict[["#string_protein_id"]].values
 
         #Converting to a dictionary
-        self.encoding_dict = {str(c):e[0] for c, e in enumerate(self.encoding_dict)}
+        self.decoding_dict = {str(c):e[0] for c, e in enumerate(self.encoding_dict)}
 
         #Swapping keys and values
         self.encoding_dict = f.swapkeyval(self.encoding_dict)
@@ -128,9 +140,12 @@ class interaction_network:
                     # Check if the main key exists; if not, initialize it as an empty dictionary
                     if int(linedata[0]) not in self.vertices:
                         self.vertices[int(linedata[0])] = {}
+                    if int(linedata[1]) not in self.vertices:
+                        self.vertices[int(linedata[1])] = {}
                     
                     # Update the sub-dictionary with the new key-value pair
                     self.vertices[int(linedata[0])][int(linedata[1])] = linedata[2]
+                    self.vertices[int(linedata[1])][int(linedata[0])] = linedata[2]
 
                 except:
                     raise ValueError(f"Row {row} was discarded")
@@ -143,15 +158,23 @@ class interaction_network:
                     # Check if the main key exists; if not, initialize it as an empty dictionary
                     if int(linedata[0]) not in self.vertices:
                         self.vertices[int(linedata[0])] = {}
+                    if int(linedata[1]) not in self.vertices:
+                        self.vertices[int(linedata[1])] = {}
                     
                     # Update the sub-dictionary with the new key-value pair
                     self.vertices[int(linedata[0])][int(linedata[1])] = linedata[2]
+                    self.vertices[int(linedata[1])][int(linedata[0])] = linedata[2]
 
                 except:
                     raise ValueError(f"Row {row} was discarded")
         
         #Deleting the data. We don't need it anymore, since we have loaded
         self.data = None
+
+        #Putting the self.vertices item into a list. These will be the preliminary clusters
+        self.vertices = [self.vertices]
+
+        #Printing the size of the data structure
         print(f"Data loaded in var .vertices, with size: {sys.getsizeof(self.vertices)/1000000}mb")
 
 
@@ -246,12 +269,11 @@ class interaction_network:
                     new_path = [current_branch[0] + "_" + str(neighbor), current_branch[1]]
                     start_end = f.lowest_first_from_to(new_path[0].split("_")[0], str(neighbor))
                     new_path_split = new_path[0].split("_")
+                    new_path[1] = new_path[1] + (1 - self.vertices[int(new_path_split[-2])][int(new_path_split[-1])])
 
                     if start_end in self.shortest_paths:
+                        to_process.append(new_path)
                         continue
-                    
-                    #Updating the length of the path
-                    new_path[1] = new_path[1] + (1 - self.vertices[int(new_path_split[-2])][int(new_path_split[-1])])
 
                     if start_end in self.shortest_paths:
                         if new_path[1] < self.shortest_paths[start_end][1]:
@@ -296,8 +318,86 @@ class interaction_network:
                 count += 1
 
         return occurances_small
+    
+
+    def severance_score(self, shortest_paths):
+        for key in shortest_paths:
+            start_end = key.split("-")
+            shortest_paths[key] = shortest_paths[key] / self.vertices[int(start_end[0])][int(start_end[1])]
+        return shortest_paths
+    
+
+    def find_edge_to_cut(self, severance_scores):
+        edge_to_cut = sorted(severance_scores.items(), key = lambda x:x[1], reverse=True)[0][0]
+        return edge_to_cut
 
 
 
+    def cut_edge(self, clusternumber, edge_to_cut):
+        start_end = edge_to_cut.split("-")
+        path_format = "_".join(start_end)
+
+        #Deleting the edge from the data
+        del self.vertices[clusternumber][int(start_end[0])][int(start_end[1])]
+        del self.vertices[clusternumber][int(start_end[1])][int(start_end[0])]
+
+        #Deleting shortest paths that rely on this edge.
+        for key in self.shortest_paths:
+            if path_format in self.shortest_paths[key]:
+                del self.shortest_paths[key]
+    
+
+    def split_cluster(self, clusterindex, list_of_keylists):
+        new_clusters = list()
+        for keylist in list_of_keylists:
+            new_clusters.append(dict())
+            for key in keylist:
+                new_clusters[-1][key] = self.vertices[clusterindex][key]
+        del self.vertices[clusterindex]
+        for new_cluster in new_clusters:
+            self.vertices.append(new_cluster)
+
+
+    def edge_to_remove(self, cluster):
+        res = self.evaluate_most_used_path()
+        res = self.severance_score(res)
+        res = self.find_edge_to_cut(res)
+        return res
+
+    def cluster(self):
+        #While there are still clusters to be processed, we run a loop of cutting and evaluating
+        while self.vertices:
+            #Checking the connectivity of the first cluster:
+            is_connected, connected_keys = f.check_connection(self.vertices[0])
+
+            #If not all vertices are interconnected, we split the cluster
+            if not is_connected:
+                self.split_cluster(0, connected_keys)
+            
+            #Determine density of the cluster
+            density = f.density(self.vertices[0])
+            #modularity = f.girvan_newman_modularity(self.original_vertices, self.vertices)
+
+            #If the conditions are met, we classify by GSEA
+            if density <= 0.7 or modularity < 0:
+                decoded_cluster = self.decode(self.vertices[0])
+                self.finished_clusters.append([f.enrichment_analysis(list(decoded_cluster.keys())), decoded_cluster])
+                del self.vertices[0]
+            
+            #If it does not satisfy the density condition, we find an edge to cut
+            else:
+                edge_to_remove = self.edge_to_remove()
+                self.cut_edge(0, edge_to_remove)
+        
+        self.write_clusters()
+    
+
+    def write_clusters(self):
+        outfile = open("results.txt", "w")
+        for finished_cluster in self.finished_clusters:
+            outfile.write(finished_cluster[0] + "\n")
+            for key in finished_cluster[1]:
+                outfile.write(key + ": " + ", ".join(finished_cluster[1][key]))
+        outfile.close()
 
 
