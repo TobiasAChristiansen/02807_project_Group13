@@ -174,6 +174,13 @@ class interaction_network:
         #Putting the self.vertices item into a list. These will be the preliminary clusters
         self.vertices = [self.vertices]
 
+        #Check connectivity of the cluster
+        is_connected, connected_keys = f.check_connection(self.vertices[0])
+
+        #If not all vertices are interconnected, we split the cluster
+        if not is_connected:
+            self.split_cluster(0, connected_keys)
+
         #Printing the size of the data structure
         print(f"Data loaded in var .vertices, with size: {sys.getsizeof(self.vertices)/1000000}mb")
 
@@ -367,27 +374,38 @@ class interaction_network:
     def cluster(self):
         #While there are still clusters to be processed, we run a loop of cutting and evaluating
         while self.vertices:
-            #Checking the connectivity of the first cluster:
-            is_connected, connected_keys = f.check_connection(self.vertices[0])
-
-            #If not all vertices are interconnected, we split the cluster
-            if not is_connected:
-                self.split_cluster(0, connected_keys)
             
             #Determine density of the cluster
             density = f.density(self.vertices[0])
-            #modularity = f.girvan_newman_modularity(self.original_vertices, self.vertices)
 
             #If the conditions are met, we classify by GSEA
-            if density <= 0.7 or modularity < 0:
+            if density <= 0.7:
                 decoded_cluster = self.decode(self.vertices[0])
                 self.finished_clusters.append([f.enrichment_analysis(list(decoded_cluster.keys())), decoded_cluster])
                 del self.vertices[0]
-            
+
             #If it does not satisfy the density condition, we find an edge to cut
             else:
+                copy_current_cluster = self.vertices[0].copy()
                 edge_to_remove = self.edge_to_remove()
                 self.cut_edge(0, edge_to_remove)
+
+                #Check connectivity of the cluster
+                is_connected, connected_keys = f.check_connection(self.vertices[0])
+
+                #If not all vertices are interconnected, we split the cluster
+                if not is_connected:
+                    self.split_cluster(0, connected_keys)
+
+                    #modularity calculation:
+                    modularity = f.girvan_newman_modularity(copy_current_cluster, self.vertices[-len(connected_keys):])
+
+                    if modularity < 0:
+                        decoded_cluster = self.decode(copy_current_cluster)
+                        self.finished_clusters.append([f.enrichment_analysis(list(decoded_cluster.keys())), decoded_cluster])
+                        self.vertices = self.vertices[:-3]
+                        
+
         
         self.write_clusters()
     
