@@ -377,7 +377,7 @@ class interaction_network:
     def cluster(self):
         #While there are still clusters to be processed, we run a loop of cutting and evaluating
         while len(self.vertices) > 0:
-            print(f"NEW ITERATION ----- Clusters left to process: {len(self.vertices)} ----- Finished clusters: {len(self.finished_clusters)}")
+            print(f"NEW ITERATION --- Clusters left: {len(self.vertices)} --- Cluster length: {len(self.vertices[0])} --- Finished clusters: {len(self.finished_clusters)} --- Latest cluster length: {len(self.finished_clusters[-1]) if self.finished_clusters else 0}")
             
             #Determine density of the cluster
             print("-----Density calculation-----")
