@@ -308,8 +308,6 @@ class interaction_network:
 
     def evaluate_most_used_path(self, cluster, debug_mode=False):
         if debug_mode: print("Initializing MapReduce of shortest_path()...") #debug_mode
-        for item in cluster:
-            self.shortest_path(item)
         print("-----Mapping-----")
         with multiprocessing.Pool() as pool:
             results = pool.map(self.shortest_path, cluster)
