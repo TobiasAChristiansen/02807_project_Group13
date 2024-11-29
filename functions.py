@@ -132,7 +132,13 @@ def girvan_newman_modularity(graph, clusters):
 
         in_cluster_weight /= 2.0
 
-        modularity += (in_cluster_weight / total_weight) - (total_strength / (2 * total_weight)) ** 2
+        
+        try:
+            modularity += (in_cluster_weight / total_weight) - (total_strength / (2 * total_weight)) ** 2
+        except:
+            print(total_weight, graph)
+            raise ValueError()
+
 
     return modularity
 
@@ -150,7 +156,11 @@ def enrichment_analysis(protein_list, organism = "hsapiens", sign_level = 0.05):
     )
     
     # Filter for a significant result (adjust p-value threshold as needed)
-    if (pval := results[['p_value']].iloc[0].iloc[0]) < sign_level:
+    if isinstance(results[['p_value']].iloc[0], float):
+        pval = results[['p_value']].iloc[0]
+    elif isinstance(pval := results[['p_value']].iloc[0].iloc[0],float):
+        pval = results[['p_value']].iloc[0].iloc[0]
+    if pval < sign_level:
         return pval
     
     else:

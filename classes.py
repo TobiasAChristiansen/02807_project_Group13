@@ -211,18 +211,17 @@ class interaction_network:
                     self.graph_network.add_edge(root, neighbor)
     
 
-    def shortest_path(self, vertex, debug_mode=False, method="Dijkstra"):
+    def shortest_path(self, vertex, debug_mode=False, method="dijkstra"):
         # Setting up a dictionary of shortest paths and the start vertex is put in a list
         shortest_paths = dict()
         to_process = [str(vertex)]
-        count = 0
 
         if method.lower() == "bfs":
 
             # While the "to_process" list is not empty, we do branch and bound
             while to_process:
                 if debug_mode:
-                    print(count, len(to_process), len(shortest_paths))
+                    print(len(to_process), len(shortest_paths))
 
                 #Taking one of the short branches to process
                 current_branch = to_process.pop(0)
@@ -265,13 +264,17 @@ class interaction_network:
             # While the "to_process" list is not empty, we do branch and bound
             while to_process:
                 if debug_mode:
-                    print(count, len(to_process), len(self.shortest_paths))
+                    print(len(to_process), len(self.shortest_paths))
 
                 #Taking one of the short branches to process
                 current_branch = to_process.pop(0)
 
+                print(current_branch[0])
+
                 # We look through all neighbors. If it goes to a vertex already in the path, it's unoptimal and is discarded
                 for neighbor in self.vertices[0][int(current_branch[0].split("_")[-1])]:
+                    if str(neighbor) in current_branch[0].split("_"):
+                        continue
 
                     # If the path doesn't loop, we add the neighbor to the current branch and check if it's a new shortest path
                     #Adding the neigbor
@@ -280,10 +283,6 @@ class interaction_network:
                     new_path_split = new_path[0].split("_")
                     new_path[1] = new_path[1] + (1 - self.vertices[0][int(new_path_split[-2])][int(new_path_split[-1])])
 
-
-                    if start_end in self.shortest_paths:
-                        to_process.append(new_path)
-                        continue
 
 
                     if start_end in self.shortest_paths:
@@ -307,12 +306,20 @@ class interaction_network:
 
 
     def evaluate_most_used_path(self, cluster, debug_mode=False):
-        if debug_mode: print("Initializing MapReduce of shortest_path()...") #debug_mode
-        print("-----Mapping-----")
-        with multiprocessing.Pool() as pool:
-            results = pool.map(self.shortest_path, cluster)
-        print("-----Reducing-----")
-        occurances = reduce(f.count_occurances, results, {})
+        if debug_mode:
+            print("Initializing MapReduce of shortest_path()...") #debug_mode
+            counter = 0
+            len_cluster = len(cluster)
+            for vertex in cluster:
+                counter += 1
+                print(f"eval_most_used_path_progress = {counter}/{len_cluster}")
+                results = self.shortest_path(vertex)
+        else:
+            print("-----Mapping-----")
+            with multiprocessing.Pool() as pool:
+                results = pool.map(self.shortest_path, cluster)
+            print("-----Reducing-----")
+            occurances = reduce(f.count_occurances, results, {})
 
         #tweaking data structure with encoding dict
         #if debug_mode: print("Initializing MapReduce of shortest_path()...") #debug_mode
@@ -337,7 +344,7 @@ class interaction_network:
     def severance_score(self, shortest_paths):
         for key in shortest_paths:
             start_end = key.split("-")
-            shortest_paths[key] = shortest_paths[key] / self.vertices[int(start_end[0])][int(start_end[1])]
+            shortest_paths[key] = shortest_paths[key] / self.vertices[0][int(start_end[0])][int(start_end[1])]
         return shortest_paths
     
     def find_edge_to_cut(self, severance_scores):
@@ -376,15 +383,17 @@ class interaction_network:
 
     def cluster(self):
         #While there are still clusters to be processed, we run a loop of cutting and evaluating
+        edge_to_remove = ""
         while len(self.vertices) > 0:
-            print(f"NEW ITERATION --- Clusters left: {len(self.vertices)} --- Cluster length: {len(self.vertices[0])} --- Finished clusters: {len(self.finished_clusters)} --- Latest cluster length: {len(self.finished_clusters[-1]) if self.finished_clusters else 0}")
+            print(f"NEW ITERATION --- Clusters left: {len(self.vertices)} --- Cluster length: {len(self.vertices[0])} --- Finished clusters: {len(self.finished_clusters)} --- Latest cluster length: {len(self.finished_clusters[-1]) if self.finished_clusters else 0} --- last edge severed: {edge_to_remove}")
             
             #Determine density of the cluster
             print("-----Density calculation-----")
             density = f.density(self.vertices[0])
+            #print(f"-----Density: {density}-----")
 
             #If the conditions are met, we classify by GSEA
-            if density <= 0.7:
+            if density >= 0.7 or len(self.vertices[0]) <= 5: #Flipped the density
                 print("-----GSEA-----")
                 decoded_cluster = self.vertices[0] #self.decode_edgesused(cluster=self.vertices[0])
                 self.finished_clusters.append([f.enrichment_analysis(list(decoded_cluster.keys())), decoded_cluster])
