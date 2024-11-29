@@ -150,8 +150,8 @@ def enrichment_analysis(protein_list, organism = "hsapiens", sign_level = 0.05):
     )
     
     # Filter for a significant result (adjust p-value threshold as needed)
-    if results[['p_value']].iloc[0] < sign_level:
-        return results[['p-value']].iloc[0]
+    if (pval := results[['p_value']].iloc[0].iloc[0]) < sign_level:
+        return pval
     
     else:
         return "No significant functions found"

@@ -3,7 +3,7 @@ import constants as c
 import pandas as pd
 import numpy as np
 import networkx as nx 
-import os, sys
+import os, sys, joblib
 from tqdm.notebook import tqdm
 from functools import reduce
 import multiprocessing
@@ -271,18 +271,20 @@ class interaction_network:
                 current_branch = to_process.pop(0)
 
                 # We look through all neighbors. If it goes to a vertex already in the path, it's unoptimal and is discarded
-                for neighbor in self.vertices[int(current_branch[0].split("_")[-1])]:
+                for neighbor in self.vertices[0][int(current_branch[0].split("_")[-1])]:
 
                     # If the path doesn't loop, we add the neighbor to the current branch and check if it's a new shortest path
                     #Adding the neigbor
                     new_path = [current_branch[0] + "_" + str(neighbor), current_branch[1]]
                     start_end = f.lowest_first_from_to(new_path[0].split("_")[0], str(neighbor))
                     new_path_split = new_path[0].split("_")
-                    new_path[1] = new_path[1] + (1 - self.vertices[int(new_path_split[-2])][int(new_path_split[-1])])
+                    new_path[1] = new_path[1] + (1 - self.vertices[0][int(new_path_split[-2])][int(new_path_split[-1])])
+
 
                     if start_end in self.shortest_paths:
                         to_process.append(new_path)
                         continue
+
 
                     if start_end in self.shortest_paths:
                         if new_path[1] < self.shortest_paths[start_end][1]:
@@ -306,28 +308,32 @@ class interaction_network:
 
     def evaluate_most_used_path(self, cluster, debug_mode=False):
         if debug_mode: print("Initializing MapReduce of shortest_path()...") #debug_mode
+        for item in cluster:
+            self.shortest_path(item)
+        print("-----Mapping-----")
         with multiprocessing.Pool() as pool:
             results = pool.map(self.shortest_path, cluster)
+        print("-----Reducing-----")
         occurances = reduce(f.count_occurances, results, {})
 
         #tweaking data structure with encoding dict
-        if debug_mode: print("Initializing MapReduce of shortest_path()...") #debug_mode
-        occurances_small = {}
-        count=0
-        if self.NewPython3912: #New python - no progress bar
-            print("Creating encoding dict without progress bar...") #debug_mode
-            for key, value in occurances.items():
-                self.encoding_edgesused[count] = key
-                occurances_small[count] = value
-                count += 1
-        else: #Old python - with progress bar
-            for key, value in tqdm(occurances.items(), desc="Parsing encoding_edgesused data"):
-                self.encoding_edgesused[count] = key
-                occurances_small[count] = value
-                count += 1
+        #if debug_mode: print("Initializing MapReduce of shortest_path()...") #debug_mode
+        #occurances_small = {}
+        #count=0
+        #if self.NewPython3912: #New python - no progress bar
+        #    print("Creating encoding dict without progress bar...") #debug_mode
+        #    for key, value in occurances.items():
+        #        self.encoding_edgesused[count] = key
+        #        occurances_small[count] = value
+        #        count += 1
+        #else: #Old python - with progress bar
+        #    for key, value in tqdm(occurances.items(), desc="Parsing encoding_edgesused data"):
+        #        self.encoding_edgesused[count] = key
+        #        occurances_small[count] = value
+        #        count += 1
 
-        self.occurances_small = occurances_small
-        return occurances_small
+        #self.occurances_small = occurances_small
+        return occurances# occurances_small
     
 
     def severance_score(self, shortest_paths):
@@ -363,27 +369,32 @@ class interaction_network:
         for new_cluster in new_clusters:
             self.vertices.append(new_cluster)
 
-    def edge_to_remove(self, cluster):
-        res = self.evaluate_most_used_path()
+    def edge_to_remove(self):
+        print("-----Finding edge to remove-----")
+        res = self.evaluate_most_used_path(self.vertices[0])
         res = self.severance_score(res)
         res = self.find_edge_to_cut(res)
         return res
 
     def cluster(self):
         #While there are still clusters to be processed, we run a loop of cutting and evaluating
-        while self.vertices:
+        while len(self.vertices) > 0:
+            print(f"NEW ITERATION ----- Clusters left to process: {len(self.vertices)} ----- Finished clusters: {len(self.finished_clusters)}")
             
             #Determine density of the cluster
+            print("-----Density calculation-----")
             density = f.density(self.vertices[0])
 
             #If the conditions are met, we classify by GSEA
             if density <= 0.7:
-                decoded_cluster = self.decode_edgesused(cluster=self.vertices[0])
+                print("-----GSEA-----")
+                decoded_cluster = self.vertices[0] #self.decode_edgesused(cluster=self.vertices[0])
                 self.finished_clusters.append([f.enrichment_analysis(list(decoded_cluster.keys())), decoded_cluster])
                 del self.vertices[0]
 
             #If it does not satisfy the density condition, we find an edge to cut
             else:
+                print("-----Evaluate edge removal-----")
                 copy_current_cluster = self.vertices[0].copy()
                 edge_to_remove = self.edge_to_remove()
                 self.cut_edge(0, edge_to_remove)
@@ -396,24 +407,29 @@ class interaction_network:
                     self.split_cluster(0, connected_keys)
 
                     #modularity calculation:
+                    print("-----Modularity-----")
                     modularity = f.girvan_newman_modularity(copy_current_cluster, self.vertices[-len(connected_keys):])
 
                     if modularity < 0:
-                        decoded_cluster = self.decode_edgesused(cluster=copy_current_cluster)
+                        print("-----Finalized previous cluster-----")
+                        decoded_cluster = copy_current_cluster #self.decode_edgesused(cluster=copy_current_cluster)
                         self.finished_clusters.append([f.enrichment_analysis(list(decoded_cluster.keys())), decoded_cluster])
                         self.vertices = self.vertices[:-3]
+                    else:
+                        print("-----Finalized split-----")
                         
 
         
         self.write_clusters()
 
     def write_clusters(self):
-        outfile = open("results.txt", "w")
-        for finished_cluster in self.finished_clusters:
-            outfile.write(finished_cluster[0] + "\n")
-            for key in finished_cluster[1]:
-                outfile.write(key + ": " + ", ".join(finished_cluster[1][key]))
-        outfile.close()
+        joblib.dump(self.finished_clusters, "./joblib_vars/finished_clusters.joblib.gz")
+        #outfile = open("results.txt", "w")
+        #for finished_cluster in self.finished_clusters:
+        #    outfile.write(finished_cluster[0] + "\n")
+        #    for key in finished_cluster[1]:
+        #        outfile.write(key + ": " + ", ".join(finished_cluster[1][key]))
+        #outfile.close()
 
 
     def decode_edgesused(self, id : int = 0, cluster : dict = None, full_dict : bool = False):
