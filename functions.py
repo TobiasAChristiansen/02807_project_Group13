@@ -1,6 +1,7 @@
 import networkx as nx
 import time
 from gprofiler.gprofiler import GProfiler
+import numpy as np
 
 
 
@@ -181,3 +182,50 @@ def decode_proteinname():
 
     For decoding edges in cluster, use "decode_edgesused()"
     """
+
+def construct_graph(input, graph_name : str = "PPI_GraphNetwork", reformat : bool = False, debug_mode : bool = False):
+        """
+        Initializes graph network and constructs edges, based on input data.
+        Input data should be in the format: dict(dict()), where the inner and outer key is a protein id, and the inner value is the normalized combined score.
+        Example: interaction_data[0][9827] = 0.3; the interaction between protein 0 and 9827, has (normalized) probability = 0.3
+        *reformat [WIP]*  = True: converts input data to appropriate netwulf object for nx.visualize() - Running reformat_clustervar(). Else, iterates through input adding edges and nodes one at a time
+        """
+        graph_network = nx.Graph(name=graph_name) #initialize empty graph
+        if debug_mode: print("##### Splitting label and cluster dict #####")
+        enrichment_labels = []
+        data = []
+        for entry in input:
+            if debug_mode: print(entry)
+            enrichment_labels.append(entry[0])
+            data.append(entry[1])
+
+        #Creating nodes in network
+        if debug_mode: print("##### Adding nodes to graph #####")
+        allproteins = set()
+        for cluster in data:
+            for root in cluster.keys():
+                allproteins.add(root)
+                for neighbor in cluster.keys():
+                    allproteins.add(neighbor)
+                    graph_network.add_node(neighbor, size = np.random.random())
+                    if debug_mode: print(f"--- Node collected: {neighbor} ---")
+        #graph_network.add_nodes_from(allproteins)
+
+        #Simple adding of edges to graph network - Asbjørn
+        if debug_mode: print("##### Adding edges to graph #####")
+        for cluster in data:
+            for root in cluster.keys():
+                for neighbor in cluster[root].keys():
+                    if root != neighbor:
+                        graph_network.add_edge(root, neighbor)
+                        if debug_mode: print(f"--- Edge added between: {root, neighbor} ---")
+
+        return graph_network
+
+def reformat_clustervar(data):
+    """
+    NB: not developed yet!
+    Converts input data to appropriate netwulf object for nx.visualize()
+    """
+
+    

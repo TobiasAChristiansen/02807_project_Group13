@@ -40,6 +40,8 @@ class interaction_network:
         self.threshold = threshold
         self.NewPython3912 = NewPython3912
         self.finished_clusters = list()
+        self.CollectMostTravelled = list() #Used for node size in graphing
+        self.CurrentSeveranceScore = None #Used for node size in graphing
 
 
     def __str__(self):
@@ -377,8 +379,8 @@ class interaction_network:
     def edge_to_remove(self):
         print("-----Finding edge to remove-----")
         res = self.evaluate_most_used_path(self.vertices[0])
-        res = self.severance_score(res)
-        res = self.find_edge_to_cut(res)
+        self.CurrentSeveranceScore = self.severance_score(res)
+        res = self.find_edge_to_cut(self.CurrentSeveranceScore)
         return res
 
     def cluster(self):
@@ -419,6 +421,7 @@ class interaction_network:
 
                     if modularity < 0:
                         print("-----Finalized previous cluster-----")
+                        self.CollectMostTravelled.append(self.CurrentSeveranceScore) #Collect severance scores if cluster is completed - used in graphing
                         decoded_cluster = copy_current_cluster #self.decode_edgesused(cluster=copy_current_cluster)
                         self.finished_clusters.append([f.enrichment_analysis(list(decoded_cluster.keys())), decoded_cluster])
                         self.vertices = self.vertices[:-3]
@@ -437,7 +440,6 @@ class interaction_network:
         #    for key in finished_cluster[1]:
         #        outfile.write(key + ": " + ", ".join(finished_cluster[1][key]))
         #outfile.close()
-
 
     def decode_edgesused(self, id : int = 0, cluster : dict = None, full_dict : bool = False):
         """
@@ -486,4 +488,53 @@ class interaction_network:
 
         else:
             return self.encoding_dict[key]
+
+    def construct_graph(self, input, graph_name : str = "PPI_GraphNetwork", reformat : bool = False, debug_mode : bool = False):
+        """
+        Initializes graph network and constructs edges, based on input data.
+        Input data should be in the format: dict(dict()), where the inner and outer key is a protein id, and the inner value is the normalized combined score.
+        Example: interaction_data[0][9827] = 0.3; the interaction between protein 0 and 9827, has (normalized) probability = 0.3
+        *reformat [WIP]*  = True: converts input data to appropriate netwulf object for nx.visualize() - Running reformat_clustervar(). Else, iterates through input adding edges and nodes one at a time
+        """
+        self.graph_network = nx.Graph(name=self.graph_name) #initialize empty graph
+        if debug_mode: print("##### Splitting label and cluster dict #####")
+        enrichment_labels = []
+        data = []
+        for entry in input:
+            if debug_mode: print(entry)
+            enrichment_labels.append(entry[0])
+            data.append(entry[1])
+
+        #Creating nodes in network
+        if debug_mode: print("##### Adding nodes to graph #####")
+        allproteins = set()
+        for cluster in data:
+            for root in cluster.keys():
+                allproteins.add(root)
+                for neighbor in cluster.keys():
+                    allproteins.add(neighbor)
+                    self.graph_network.add_node(neighbor, size = self.NodeSize(node=neighbor)) #Node size = sum of normalized combined score
+                    if debug_mode: print(f"--- Node collected: {neighbor} ---")
+        #graph_network.add_nodes_from(allproteins)
+
+        #Simple adding of edges to graph network - Asbjørn
+        if debug_mode: print("##### Adding edges to graph #####")
+        for cluster in data:
+            for root in cluster.keys():
+                for neighbor in cluster[root].keys():
+                    if root != neighbor:
+                        self.graph_network.add_edge(root, neighbor)
+                        if debug_mode: print(f"--- Edge added between: {root, neighbor} ---")
+
+
+    def NodeSize(self, node):
+        """
+        Finding node size from sum of normalized combined score, using self.data
+        """
+        sum_NormCombinedScore = 0
+        for prot_col in ["protein1", "protein2"]:
+            curr_data = self.data[self.data[prot_col] == node]
+            sum_NormCombinedScore += curr_data["combined_score"].sum()
+        return sum_NormCombinedScore
+
 
