@@ -2,7 +2,8 @@ import networkx as nx
 import time
 from gprofiler.gprofiler import GProfiler
 import numpy as np
-
+import multiprocessing
+from tqdm.notebook import tqdm
 
 
 def swapkeyval(indict):
@@ -228,4 +229,52 @@ def reformat_clustervar(data):
     Converts input data to appropriate netwulf object for nx.visualize()
     """
 
+def custom_pool(job, target, ProgressBar : bool = True):
+    """
+    Keeps track of child processes in map reduce when multiprocessing.pool is used
+    *job*: custom task to be performed
+    *target*: target to perform task on
+    """
+    #Logfile for tracking - in dir <CustomPool_logs>
+    #var init
+    collected_results = []
+    total_iters = len(target)
     
+    #Run with tqdm()
+    if ProgressBar: 
+        with multiprocessing.Pool() as pool:
+            for result in tqdm(pool.imap_unordered(job, target), total=len(target), desc="Child processes completed:"):
+                collected_results.append(result)
+    
+    #Run without tqdm - Progress saved to CustomPool_logs
+    else: 
+        with multiprocessing.Pool() as pool:
+            iter = pool.imap_unordered(job, target)
+            
+            while True:
+                with open(f"./CustomPool_logs/CompletedContent.txt", "w") as logfile: #each ChildProcess writes to own logfile
+                    try:
+                        result = next(iter)
+                    
+                    except StopIteration:                            
+                    # All jobs have been processed
+                        print("All child jobs completed.")
+                        break
+                        
+                    except ChildProcessError as err:
+                        with open("./CustomPool_logs/FailedPools.txt", "w") as logfile_fail:
+                            print(f"Processing of {err.args[0]} job failed.", file=logfile_fail)
+                        
+                    else:
+                        collected_results.append(result)
+                        with open(f"./CustomPool_logs/Pool_Iteration_Completed.txt", "w") as iterfile:
+                            print(f"Job {len(collected_results)} completed!", file=iterfile)
+                        print(f"Job {len(collected_results)} completed! \n{result}", file=logfile)
+
+    if collected_results:
+        with open("./CustomPool_logs/AllPool_logs.txt", "w") as logfile:
+            print('All completed jobs:', collected_results, file=logfile)
+    
+    return collected_results
+
+

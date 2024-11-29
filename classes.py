@@ -54,20 +54,6 @@ class interaction_network:
         return "\n".join(f"{key} {value}" for key, value in self.vertices.items())
     
 
-    #outdated
-    """def decode(self, cluster):
-        new_dict = dict()
-        for key in cluster:
-            proteinname = self.decoding_dict[key]
-            neighbor_protein_names = list()
-            for neighbor in cluster[key]:
-                neighbor_protein_names.append(self.decoding_dict[neighbor])
-            new_dict[proteinname] = neighbor_protein_names
-        return new_dict"""
-    
-
-
-
     def create_encoding_dict(self, 
                              file_url: str = "https://stringdb-downloads.org/download/protein.info.v12.0/9606.protein.info.v12.0.txt.gz", 
                              compression : str = "gzip", 
@@ -271,7 +257,8 @@ class interaction_network:
                 #Taking one of the short branches to process
                 current_branch = to_process.pop(0)
 
-                print(current_branch[0])
+                if debug_mode:
+                    print(current_branch[0])
 
                 # We look through all neighbors. If it goes to a vertex already in the path, it's unoptimal and is discarded
                 for neighbor in self.vertices[0][int(current_branch[0].split("_")[-1])]:
@@ -318,8 +305,10 @@ class interaction_network:
                 results = self.shortest_path(vertex)
         else:
             print("-----Mapping-----")
-            with multiprocessing.Pool() as pool:
-                results = pool.map(self.shortest_path, cluster)
+            results = f.custom_pool(self.shortest_path, cluster, ProgressBar=True)
+
+            """with multiprocessing.Pool() as pool:
+                results = pool.map(self.shortest_path, cluster)"""
             print("-----Reducing-----")
             occurances = reduce(f.count_occurances, results, {})
 
@@ -379,8 +368,8 @@ class interaction_network:
     def edge_to_remove(self):
         print("-----Finding edge to remove-----")
         res = self.evaluate_most_used_path(self.vertices[0])
-        self.CurrentSeveranceScore = self.severance_score(res)
-        res = self.find_edge_to_cut(self.CurrentSeveranceScore)
+        res = self.severance_score(res)
+        res = self.find_edge_to_cut(res)
         return res
 
     def cluster(self):
