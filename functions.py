@@ -147,6 +147,7 @@ def girvan_newman_modularity(graph, clusters):
 def enrichment_analysis(protein_list, organism = "hsapiens", sign_level = 0.05):
     
     # Initialize GProfiler object
+    print(protein_list)
     gp = GProfiler(return_dataframe=True)
 
     #Generate GProfiler with the information from protein sequences and organism
@@ -157,13 +158,14 @@ def enrichment_analysis(protein_list, organism = "hsapiens", sign_level = 0.05):
         significance_threshold_method='fdr'  # FDR for multiple testing correction
     )
     
-    # Filter for a significant result (adjust p-value threshold as needed)
-    if isinstance(results[['p_value']].iloc[0], float):
-        pval = results[['p_value']].iloc[0]
-    elif isinstance(pval := results[['p_value']].iloc[0].iloc[0],float):
-        pval = results[['p_value']].iloc[0].iloc[0]
+    if len(results) == 0:
+        return "Missing more than one found protein"
+
+    #Extract p-value from most significant term
+    pval = results["p_value"].iloc[0]
+
     if pval < sign_level:
-        return pval
+        return results["name"]
     
     else:
         return "No significant functions found"
