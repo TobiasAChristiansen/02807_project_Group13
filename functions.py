@@ -165,7 +165,7 @@ def enrichment_analysis(protein_list, organism = "hsapiens", sign_level = 0.05):
     pval = results["p_value"].iloc[0]
 
     if pval < sign_level:
-        return results["name"]
+        return results["name"].iloc[0]
     
     else:
         return "No significant functions found"

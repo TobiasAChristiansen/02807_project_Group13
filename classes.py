@@ -7,6 +7,7 @@ import os, sys, joblib
 from tqdm.notebook import tqdm
 from functools import reduce
 import multiprocessing
+from IPython.display import clear_output
 
 
 
@@ -416,6 +417,9 @@ class interaction_network:
                         self.vertices = self.vertices[:-3]
                     else:
                         print("-----Finalized split-----")
+
+
+            clear_output(wait = False) #Clear output after each iteration
                         
 
         
