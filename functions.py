@@ -164,9 +164,10 @@ def enrichment_analysis(protein_list, organism = "hsapiens", sign_level = 0.05):
     #Extract p-value from most significant term
     pval = results["p_value"].iloc[0]
 
+    #Return most significant term + p-value
     if pval < sign_level:
-        return results["name"].iloc[0]
-    
+        return [results["name"].iloc[0], results["p_value"].iloc[0]]
+
     else:
         return "No significant functions found"
 
