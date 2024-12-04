@@ -118,8 +118,9 @@ class interaction_network:
             print(f"Given threshold: {self.threshold} filtered out no values")
         
         #Min-max normalizing of "combined_score"
-        self.data["combined_score"] = (self.data["combined_score"]-self.data["combined_score"].min())/(self.data["combined_score"].max()-self.data["combined_score"].min())
-        self.data["combined_score"] = self.data["combined_score"].round(2) 
+        self.data["combined_score"] = (self.data["combined_score"]-self.data["combined_score"].min())/(self.data["combined_score"].max()-self.data["combined_score"].min()) if self.data["combined_score"].min() != self.data["combined_score"].max() else self.data["combined_score"] / self.data["combined_score"].max()
+        self.data["combined_score"] = self.data["combined_score"].round(2)
+
 
         #Flag for NewPython3912 (tqdm() wont run in newer versions)
         if self.NewPython3912:
@@ -206,6 +207,7 @@ class interaction_network:
         to_process = [str(vertex)]
 
         if method.lower() == "bfs":
+            raise NotImplementedError
 
             # While the "to_process" list is not empty, we do branch and bound
             while to_process:
@@ -296,6 +298,8 @@ class interaction_network:
 
 
     def evaluate_most_used_path(self, cluster, debug_mode=False):
+        """This function uses mapreduce to count the number of times an edge is in a shortest path. 
+        The function returns a dictionary where they keys are edges and the value is counts"""
         if debug_mode:
             print("Initializing MapReduce of shortest_path()...") #debug_mode
             counter = 0
@@ -305,15 +309,15 @@ class interaction_network:
                 print(f"eval_most_used_path_progress = {counter}/{len_cluster}")
                 results = self.shortest_path(vertex)
         else:
+            #Mapping the shortest_path function onto the cluster
             print("-----Mapping-----")
             results = f.custom_pool(self.shortest_path, cluster, ProgressBar=True)
 
-            """with multiprocessing.Pool() as pool:
-                results = pool.map(self.shortest_path, cluster)"""
+            #Reducing the result by using count_occurances
             print("-----Reducing-----")
             occurances = reduce(f.count_occurances, results, {})
 
-        #tweaking data structure with encoding dict
+        #tweaking data structure with encoding dict. This was not needed
         #if debug_mode: print("Initializing MapReduce of shortest_path()...") #debug_mode
         #occurances_small = {}
         #count=0
@@ -334,6 +338,7 @@ class interaction_network:
     
 
     def severance_score(self, shortest_paths):
+        """Calculating the severance score by dividing by the weight. The weak edges will be preferred"""
         for key in shortest_paths:
             start_end = key.split("-")
             shortest_paths[key] = shortest_paths[key] / self.vertices[0][int(start_end[0])][int(start_end[1])]
@@ -357,6 +362,7 @@ class interaction_network:
                 del self.shortest_paths[key]
     
     def split_cluster(self, clusterindex, list_of_keylists):
+        """Splitting the cluster using a list of lists of keys that should be grouped together"""
         new_clusters = list()
         for keylist in list_of_keylists:
             new_clusters.append(dict())
@@ -367,6 +373,7 @@ class interaction_network:
             self.vertices.append(new_cluster)
 
     def edge_to_remove(self):
+        """Function for determining which edge should be removed from the cluster"""
         print("-----Finding edge to remove-----")
         res = self.evaluate_most_used_path(self.vertices[0])
         res = self.severance_score(res)
@@ -385,7 +392,7 @@ class interaction_network:
             #print(f"-----Density: {density}-----")
 
             #If the conditions are met, we classify by GSEA
-            if density >= 0.7 or len(self.vertices[0]) <= 5: #Flipped the density
+            if density >= 0.7:
                 print("-----GSEA-----")
                 decoded_cluster = self.vertices[0] #self.decode_edgesused(cluster=self.vertices[0])
                 self.finished_clusters.append([f.enrichment_analysis(list(decoded_cluster.keys())), decoded_cluster])
@@ -394,9 +401,9 @@ class interaction_network:
             #If it does not satisfy the density condition, we find an edge to cut
             else:
                 print("-----Evaluate edge removal-----")
-                copy_current_cluster = self.vertices[0].copy()
-                edge_to_remove = self.edge_to_remove()
-                self.cut_edge(0, edge_to_remove)
+                copy_current_cluster = self.vertices[0].copy()   #Making a copy of the current cluster so we can revert the cut
+                edge_to_remove = self.edge_to_remove()   #Identifying which edge to remove
+                self.cut_edge(0, edge_to_remove) #Removing the edge
 
                 #Check connectivity of the cluster
                 is_connected, connected_keys = f.check_connection(self.vertices[0])
@@ -409,12 +416,15 @@ class interaction_network:
                     print("-----Modularity-----")
                     modularity = f.girvan_newman_modularity(copy_current_cluster, self.vertices[-len(connected_keys):])
 
+                    #If the modularity will not be increased with the split, we restore the edge and finalize the cluster
                     if modularity < 0:
                         print("-----Finalized previous cluster-----")
                         self.CollectMostTravelled.append(self.CurrentSeveranceScore) #Collect severance scores if cluster is completed - used in graphing
                         decoded_cluster = copy_current_cluster #self.decode_edgesused(cluster=copy_current_cluster)
                         self.finished_clusters.append([f.enrichment_analysis(list(decoded_cluster.keys())), decoded_cluster])
                         self.vertices = self.vertices[:-3]
+                    
+                    #If the modularity is increased, we finalize the split
                     else:
                         print("-----Finalized split-----")
 
